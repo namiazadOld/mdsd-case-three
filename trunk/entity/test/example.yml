@@ -1,0 +1,8 @@
+[Person]
+[Blog]
+[Blog]user+-[User]
+[User|name;lastname;]
+[Person]^[User]
+[User]hand++-[Hand]
+[User]eyes+1-*[Eye]
+[User]blogs+1->*[Blog]

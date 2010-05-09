@@ -1,0 +1,268 @@
+module utils
+
+	imports include/Yuml
+	  		libstratego-lib
+  			libstratego-gpp
+  			libstratego-aterm
+  			lib/editor-common.generated
+			include/Entity
+				
+    strategies
+
+      show-pretty-printed-yuml :
+        (selected, position, ast, path, project-path) -> (filename, result-string)
+        with
+          filename := <guarantee-extension(|"yml")> path;
+          result-string := <pp-yuml> selected
+
+	rules
+		  pp-yuml = alltd(pp)
+		  //To yuml lines seperately
+		  pp : YUML(line*) -> $[[<map(pp-yuml);separate-by(|"\n");concat-strings> line*]]
+		  
+		  //each line is formed either by entity definition ([Customer]) or a relation between two entities ([Customer]->[Blog])
+		  pp : RelationDefinition(relation) -> $[[<pp> relation]]
+		  pp : EntityDefinition(entity) -> $[[<pp> entity]]
+		  
+		  //the behavious of note in yuml is exaclty the same with entity. only difference is in syntax
+		  pp : EntityOrNote(entityornote) -> $[$[$[<pp> entityornote]$]$]		 
+		  
+		  //relation is defined between two entites (leftent, rightent). each relation in addition to connection type(aggregation, composition, ...)
+		  //can have labels.
+		  pp : Relation(leftent, leftlabel, conn, rightlabel, rightent) -> $[[<pp> leftent][<pp> leftlabel][<pp> conn][<pp> rightlabel][<pp> rightent]]
+		 
+		  //each entity can be formed by background color specification and list of fields
+		  pp : Entity(classname*, splash, detail*) -> $[[<separate-by(|" "); concat-strings> classname*][<pp> splash][<map(pp);concat-strings> detail*]]
+		  pp : Note(note*) -> $[note: [<separate-by(|" "); concat-strings> note*]]
+		  
+		  //last have field in entity definition can hold semicolon or not. these two definition support this fact
+		  pp : EntityDetails(notenddetail*, enddetail) -> $[|[<map(pp);concat-strings> notenddetail*][<pp> enddetail]]
+		  pp : EntityDetails(notenddetail*) -> $[|[<map(pp);concat-strings> notenddetail*]]
+		  
+		  //inner fields (not the last one) should carry semicolon
+		  pp : NotEndPropertyOrMethod(name*, pth) -> $[[<separate-by(|" "); concat-strings> name*][<pp> pth];]
+		  pp : EndPropertyOrMethod(name*, pth) ->  $[[<separate-by(|" "); concat-strings> name*][<pp> pth]]
+		  
+		  //the difference between method and normal attribute is only paranthesis
+		  pp : Method() -> $[()]
+		  pp : Splash(color) -> $[{bg:[color]}]
+		  
+		  //connector specifies relation type. It can also contain cardinality. 
+		  pp : Connector(reltypleft, cardleft, sep, cardright, reltypright) -> $[[<pp> reltypleft][<pp> cardleft][<pp> sep][<pp> cardright][<pp> reltypright ]]
+		 
+		  //cardinality can be defined as range (1..2 or simple integer). * is declared in label for simplicity		
+		  pp : Range(begin, end) -> $[[begin]..[end]]
+		  pp : Integer(int) -> int
+		  
+		  //different kind of relations
+		  pp : SeperatorDependency() -> $[-.-]
+		  pp : SeperatorSimple() -> $[-]
+		  pp : RightDirection() -> $[>]
+		  pp : LeftDirection() -> $[<]
+		  pp : Aggregation() -> $[+]
+		  pp : Composition() -> $[++]
+		  pp : Inheritance() -> $[^]
+		  
+		  //label can contain multi words sepreated by space
+		  pp : Label(label*) -> <separate-by(|" "); concat-strings> label*
+		 
+		  pp : None() -> $[]		 
+		  pp : Some(t) -> <pp>t
+		  
+	show-yuml-aterm:
+        (selected, position, ast, path, project-path) -> (filename, result-string)
+        with
+          filename := <guarantee-extension(|"yst")> path;
+          result-string := <remove-some-cons; declare; rewrite-rules; remove-empty-details> selected
+    
+    rules
+    	
+    	declare = alltd(declare-entity)
+    	
+    	//to create inheritance relation the sub class name is needed, here the sub class name recorded
+        declare-entity :
+          w@WebDSLEntity(name, SuperClass(super), prop*) -> w
+          with  rules ( HasSubClass : super -> name ); <map(declare-property(|name))><filter(declare-property(|name))> prop* //assumes only one subclass
+          
+        declare-entity :
+          w@WebDSLEntity(name, None(), prop*) -> w
+          with  <map(declare-property(|name))><filter(declare-property(|name))> prop* 
+          
+		//using dynamic rules, entity name of every entity properties are recorded     
+        declare-property (|className):
+        	e@EntityTypeProperty(name, type, inverse) -> e
+        	with  rules ( HasProperty : name -> className )
+        
+        // declare-property (|className):
+        	// e@EntityTypeProperty(name, type, None()) -> e
+        	// with  rules ( HasProperty : name -> className )
+        	  
+        declare-property (|className):
+        	e@CompositionProperty(name, type, inverse) -> e
+        	with  rules ( HasProperty : name -> className ) 
+        
+        // declare-property (|className):
+        	// e@CompositionProperty(name, type, None()) -> e
+        	// with  rules ( HasProperty : name -> className ) 
+        
+        	
+        declare-property (|className):
+        	e@SetProperty(name, type, inverse) -> e
+        	with  rules ( HasProperty : name -> className )
+        
+         // declare-property (|className):
+        	// e@SetProperty(name, type, None()) -> e
+        	// with  rules ( HasProperty : name -> className )
+        
+    
+    rules
+    	//rewrite-rules = alltd(rr)
+    	
+    	//convert SOme(x) to x in whole tree
+    	remove-some-cons = topdown(try(\Some(x) -> x\))
+    	
+    	//removes empty entity details to prevent creating yuml entities like [Blog|] (pipe is additional)
+    	remove-empty-details = topdown(try(\[EntityDetails([])]->[]\))
+    	
+    	
+    	rewrite-rules=rr
+    	rr :
+    		Module(ident,line*) -> YUML(<flatten-list()><map(rr)> line*)
+    	
+    	rr : 
+    		//creating entity and its super class in addition to properties based on basic type properties
+    		//and relations based on reference type properties.
+    		WebDSLEntity(name, sup@SuperClass(super), prop*) -> result
+    		with result :=  <flatten-list()>[EntityDefinition(EntityOrNote(Entity([name], None(), 
+    		[EntityDetails(<filter(rr-val)>(prop*))]
+    		))), <rr>sup, <filter(rr-ent)>prop*]		
+    	
+    	rr :
+    		//same as above without super class
+    		WebDSLEntity(name, None(), prop*) -> result
+    		with result :=  <flatten-list()>[EntityDefinition(EntityOrNote(Entity([name], None(), 
+    		[EntityDetails(<filter(rr-val)>(prop*))]
+    		))), <filter(rr-ent)>prop*]		
+    		
+    	
+    		
+    	rr : 
+    		//inheritance
+    		SuperClass(super) -> inherit 
+    	    with sub := <HasSubClass> super
+    	         ;inherit := RelationDefinition(Relation(EntityOrNote(Entity([super], None(), [])), None(), Inheritance(), None(), EntityOrNote(Entity([sub], None(), []))))
+    		  
+    	  
+    	rr-val : 
+    		//basic type fields
+    		BasicTypeProperty(name, type) -> NotEndPropertyOrMethod([name], None())
+    	
+    	rr-ent: 
+    		//reference type fields without inverse
+    		EntityTypeProperty(name, Type(type), None()) -> aggregation
+    		with class := <HasProperty> name
+    			; aggregation := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])), 
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Aggregation()), 
+    			  		None(), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		None()), 
+    			  	None(), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+    	
+    	rr-ent: 
+    		//reference type fields with inverse
+    		EntityTypeProperty(name, Type(type), Inverse(pre, post)) -> aggregation
+    		with class := <HasProperty> name
+    			; aggregation := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])), 
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Aggregation()), 
+    			  		None(), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		Some(RightDirection())), 
+    			  	None(), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+    	
+    	rr-ent: 
+    		//composition without inverse
+    		CompositionProperty(name, Type(type), None()) -> composition
+    		with class := <HasProperty> name
+    			; composition := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])),
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Composition()), 
+    			  		None(), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		None()), 
+    			  	None(), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+    	
+    	rr-ent: 
+    		//composition with invese
+    		CompositionProperty(name, Type(type), Inverse(pre, post)) -> composition
+    		with class := <HasProperty> name
+    			; composition := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])),
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Composition()), 
+    			  		None(), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		Some(RightDirection())), 
+    			  	None(), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+    	
+    	rr-ent: 
+    		//lists without inverse
+    		SetProperty(name, Type(type), None()) -> aggregation
+    		with class := <HasProperty> name
+    			; aggregation := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])), 
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Aggregation()), 
+    			  		Some(Integer("1")), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		None()), 
+    			  	Some(Label(["*"])), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+    	
+    	rr-ent: 
+    		//list with inverse
+    		SetProperty(name, Type(type), Inverse(pre, post)) -> aggregation
+    		with class := <HasProperty> name
+    			; aggregation := 
+    			  RelationDefinition(Relation(EntityOrNote(
+    			  	Entity([class], None(), [])), 
+    			  	Some(Label([name])), 
+    			  	Connector(Some(Aggregation()), 
+    			  		Some(Integer("1")), 
+    			  		SeperatorSimple(), 
+    			  		None(), 
+    			  		Some(RightDirection())), 
+    			  	Some(Label(["*"])), 
+    			  	EntityOrNote(Entity([type], None(), []))))
+
+   
+webdsl-yuml:
+        (selected, position, ast, path, project-path) -> (filename, result-string)
+        with
+          filename := <guarantee-extension(|"yml")> path;
+          result-string := <remove-some-cons; declare; rewrite-rules;remove-empty-details;pp-yuml> selected 	
+
+    		
+    		
+    	
+		 
+
+		  

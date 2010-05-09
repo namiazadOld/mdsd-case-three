@@ -1,0 +1,74 @@
+YUML(
+  [ EntityDefinition(EntityOrNote(Entity(["Person"], None(), [])))
+  , EntityDefinition(EntityOrNote(Entity(["Blog"], None(), [])))
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Blog"], None(), []))
+      , Some(Label(["user"]))
+      , Connector(Some(Aggregation()), None(), SeperatorSimple(), None(), None())
+      , None()
+      , EntityOrNote(Entity(["User"], None(), []))
+      )
+    )
+  , EntityDefinition(
+      EntityOrNote(
+        Entity(
+          ["User"]
+        , None()
+        , [ EntityDetails(
+              [NotEndPropertyOrMethod(["name"], None()), NotEndPropertyOrMethod(["lastname"], None())]
+            )
+          ]
+        )
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Person"], None(), []))
+      , None()
+      , Inheritance()
+      , None()
+      , EntityOrNote(Entity(["User"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["User"], None(), []))
+      , Some(Label(["hand"]))
+      , Connector(Some(Composition()), None(), SeperatorSimple(), None(), None())
+      , None()
+      , EntityOrNote(Entity(["Hand"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["User"], None(), []))
+      , Some(Label(["eyes"]))
+      , Connector(
+          Some(Aggregation())
+        , Some(Integer("1"))
+        , SeperatorSimple()
+        , None()
+        , None()
+        )
+      , Some(Label(["*"]))
+      , EntityOrNote(Entity(["Eye"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["User"], None(), []))
+      , Some(Label(["blogs"]))
+      , Connector(
+          Some(Aggregation())
+        , Some(Integer("1"))
+        , SeperatorSimple()
+        , None()
+        , Some(RightDirection())
+        )
+      , Some(Label(["*"]))
+      , EntityOrNote(Entity(["Blog"], None(), []))
+      )
+    )
+  ]
+)

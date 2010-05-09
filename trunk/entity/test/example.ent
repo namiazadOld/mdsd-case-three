@@ -1,0 +1,20 @@
+module example
+
+// Example "MyLanguage" program (see syntax/MyLanguage.sdf for the grammar)
+
+entity Person
+{
+	
+}
+entity Blog
+{
+	user -> User 
+}
+
+entity User : Person{
+	name :: String
+	lastname :: String
+	hand <> Hand
+	eyes -> Set<Eye>
+	blogs -> Set<Blog>(inverse=Blog.user)
+  }
