@@ -1,0 +1,22 @@
+%% Grammar for the MyLanguage language
+%% By default, based on an example "entities" syntax
+module Entity
+
+imports Common
+
+exports
+
+  context-free start-symbols
+    Start
+
+  context-free syntax
+  
+    "module" ID Definition*       			   -> Start {cons("Module")}
+    "entity" ID SuperClass? "{" Property* "}"  -> Definition {cons("WebDSLEntity")}
+    ":" ID									   -> SuperClass {cons("SuperClass")}
+    ID "::" Type							   -> Property {cons("BasicTypeProperty")}
+    ID "->" Type Inverse?					   -> Property {cons("EntityTypeProperty")}
+    ID "<>" Type Inverse?					   -> Property {cons("CompositionProperty")}
+    ID "->" "Set" "<" Type ">" Inverse?		   -> Property {cons("SetProperty")} 
+    ID                            			   -> Type {cons("Type")}
+    "(" "inverse" "=" ID "." ID ")"			   -> Inverse {cons("Inverse")}

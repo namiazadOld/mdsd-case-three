@@ -1,0 +1,19 @@
+Module(
+  "example"
+, [ WebDSLEntity("Person", None(), [])
+  , WebDSLEntity(
+      "Blog"
+    , None()
+    , [EntityTypeProperty("user", Type("User"), None())]
+    )
+  , WebDSLEntity(
+      "User"
+    , Some(SuperClass("Person"))
+    , [ BasicTypeProperty("name", Type("String"))
+      , BasicTypeProperty("lastname", Type("String"))
+      , CompositionProperty("hand", Type("Hand"), None())
+      , SetProperty("eyes", Type("Eye"), None())
+      ]
+    )
+  ]
+)
