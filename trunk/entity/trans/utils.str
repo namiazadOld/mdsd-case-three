@@ -244,7 +244,7 @@ module utils
     			; aggregation := 
     			  RelationDefinition(Relation(EntityOrNote(
     			  	Entity([class], None(), [])), 
-    			  	Some(Label([name])), 
+    			  	Some(Label([name])),       
     			  	Connector(Some(Aggregation()), 
     			  		Some(Integer("1")), 
     			  		SeperatorSimple(), 
