@@ -1,19 +1,25 @@
 Module(
   "example"
-, [ WebDSLEntity("Person", None(), [])
-  , WebDSLEntity(
-      "Blog"
+, [ WebDSLEntity(
+      "Foo"
     , None()
-    , [EntityTypeProperty("user", Type("User"), None())]
+    , [ BasicTypeProperty("valueProp", Type("String"))
+      , EntityTypeProperty("entityRef", Type("Bar"), None())
+      , CompositionProperty("entityComp", Type("Baz"), None())
+      , CompositionProperty("compoz", Type("Baz"), None())
+      , SetProperty("oneToMany", Type("FooBar"), None())
+      ]
+    )
+  , WebDSLEntity("Bar", None(), [BasicTypeProperty("name", Type("String"))])
+  , WebDSLEntity(
+      "Baz"
+    , None()
+    , [EntityTypeProperty("ownedBy", Type("Foo"), Some(Inverse("Foo", "entityComp")))]
     )
   , WebDSLEntity(
-      "User"
-    , Some(SuperClass("Person"))
-    , [ BasicTypeProperty("name", Type("String"))
-      , BasicTypeProperty("lastname", Type("String"))
-      , CompositionProperty("hand", Type("Hand"), None())
-      , SetProperty("eyes", Type("Eye"), None())
-      ]
+      "Foobar"
+    , Some(SuperClass("Bar"))
+    , [BasicTypeProperty("value", Type("Int"))]
     )
   ]
 )
