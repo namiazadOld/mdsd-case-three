@@ -154,7 +154,7 @@ module utils
     	\))
     	
     	
-    	rewrite-rules=rr 
+    	rewrite-rules=rr  
     	rr :
     		Module(ident,line*) -> YUML(<flatten-list()><map(rr)> line*)
     	
