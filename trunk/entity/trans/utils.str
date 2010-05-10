@@ -73,7 +73,7 @@ module utils
         (selected, position, ast, path, project-path) -> (filename, result-string)
         with
           filename := <guarantee-extension(|"yst")> path;
-          result-string := <remove-some-cons; declare; rewrite-rules; remove-empty-details> selected
+          result-string := <remove-some-cons; declare; merge-inverse-propeties-ent;merge-inverse-propeties-comp;merge-inverse-propeties-set;rewrite-rules; remove-empty-details> selected
     
     rules
     	
@@ -88,32 +88,42 @@ module utils
           w@WebDSLEntity(name, None(), prop*) -> w
           with  <map(declare-property(|name))><filter(declare-property(|name))> prop* 
           
-		//using dynamic rules, entity name of every entity properties are recorded     
+		//using dynamic rules, entity name of every entity properties are recorded 
+		//for properties that have inverse clause a flag is set   
         declare-property (|className):
-        	e@EntityTypeProperty(name, type, inverse) -> e
+        	e@EntityTypeProperty(name, Type(type), Inverse(cls, p)) -> e
         	with  rules ( HasProperty : name -> className )
+        	with  finder:=<concat-strings>[type, ".", p]; rules ( GetInverse : finder -> "HasInverse" )
         
-        // declare-property (|className):
-        	// e@EntityTypeProperty(name, type, None()) -> e
-        	// with  rules ( HasProperty : name -> className )
-        	  
+		 //the necessary connector is recorded to be used if there is inverse refering to this property      
+         declare-property (|className):
+        	e@EntityTypeProperty(name, type, None()) -> e
+        	with  rules ( HasProperty : name -> className )
+        	with  finder:=<concat-strings>[className, ".", name]; rules ( GetConnector : finder -> Some(RightDirection()) )
+        
+        //for properties that have inverse clause a flag is set 
         declare-property (|className):
-        	e@CompositionProperty(name, type, inverse) -> e
+        	e@CompositionProperty(name, Type(type), Inverse(cls, p)) -> e
         	with  rules ( HasProperty : name -> className ) 
+        	with  finder:=<concat-strings>[type, ".", p]; rules ( GetInverse : finder -> "HasInverse" )
         
-        // declare-property (|className):
-        	// e@CompositionProperty(name, type, None()) -> e
-        	// with  rules ( HasProperty : name -> className ) 
-        
-        	
+         //the necessary connector is recorded to be used if there is inverse refering to this property 
         declare-property (|className):
-        	e@SetProperty(name, type, inverse) -> e
+        	e@CompositionProperty(name, type, None()) -> e
+        	with  rules ( HasProperty : name -> className ) 
+        	with  finder:=<concat-strings>[className, ".", name]; rules ( GetConnector : finder -> Some(Composition()) )
+        
+        //for properties that have inverse clause a flag is set 
+        declare-property (|className):
+        	e@SetProperty(name, Type(type), Inverse(cls, p)) -> e
         	with  rules ( HasProperty : name -> className )
-        
-         // declare-property (|className):
-        	// e@SetProperty(name, type, None()) -> e
-        	// with  rules ( HasProperty : name -> className )
-        
+        	with  finder:=<concat-strings>[type, ".", p]; rules ( GetInverse : finder -> "HasInverse" )
+     
+		//the necessary connector is recorded to be used if there is inverse refering to this property      
+     	declare-property (|className):
+        	e@SetProperty(name, type, None()) -> e
+        	with  rules ( HasProperty : name -> className )
+        	with  finder:=<concat-strings>[className, ".", name]; rules ( GetConnector : finder -> Some(RightDirection()) )
     
     rules
     	//rewrite-rules = alltd(rr)
@@ -123,6 +133,25 @@ module utils
     	
     	//removes empty entity details to prevent creating yuml entities like [Blog|] (pipe is additional)
     	remove-empty-details = topdown(try(\[EntityDetails([])]->[]\))
+    	
+    	//removing other side of inverse property since it is redundant. This task should be done before re-writing rules
+    	merge-inverse-propeties-comp = topdown(try(\
+    		CompositionProperty(name, Type(type), None()) -> []
+    		with class := <HasProperty> name
+    		where <eq>(<GetInverse><concat-strings>[class, ".", name], "HasInverse")
+    	\))
+    	
+    	merge-inverse-propeties-ent = topdown(try(\
+    		EntityTypeProperty(name, Type(type), None()) -> []
+    		with class := <HasProperty> name
+    		where <eq>(<GetInverse><concat-strings>[class, ".", name], "HasInverse")
+    	\))
+    	
+    	merge-inverse-propeties-set = topdown(try(\
+    		SetProperty(name, Type(type), None()) -> []
+    		with class := <HasProperty> name
+    		where <eq>(<GetInverse><concat-strings>[class, ".", name], "HasInverse")
+    	\))
     	
     	
     	rewrite-rules=rr
@@ -165,7 +194,7 @@ module utils
     			  RelationDefinition(Relation(EntityOrNote(
     			  	Entity([class], None(), [])), 
     			  	Some(Label([name])), 
-    			  	Connector(Some(Aggregation()), 
+    			  	Connector(Some(LeftDirection()), 
     			  		None(), 
     			  		SeperatorSimple(), 
     			  		None(), 
@@ -181,12 +210,12 @@ module utils
     			  RelationDefinition(Relation(EntityOrNote(
     			  	Entity([class], None(), [])), 
     			  	Some(Label([name])), 
-    			  	Connector(Some(Aggregation()), 
+    			  	Connector(Some(LeftDirection()), 
     			  		None(), 
     			  		SeperatorSimple(), 
     			  		None(), 
-    			  		Some(RightDirection())), 
-    			  	None(), 
+    			  		<GetConnector><concat-strings>[pre, ".", post]), 
+    			  	Some(Label([post])),
     			  	EntityOrNote(Entity([type], None(), []))))
     	
     	rr-ent: 
@@ -217,8 +246,8 @@ module utils
     			  		None(), 
     			  		SeperatorSimple(), 
     			  		None(), 
-    			  		Some(RightDirection())), 
-    			  	None(), 
+    			  		<GetConnector><concat-strings>[pre, ".", post]), 
+    			  	Some(Label([post])), 
     			  	EntityOrNote(Entity([type], None(), []))))
     	
     	rr-ent: 
@@ -240,8 +269,8 @@ module utils
     	rr-ent: 
     		//list with inverse
     		SetProperty(name, Type(type), Inverse(pre, post)) -> aggregation
-    		with class := <HasProperty> name
-    			; aggregation := 
+    		with class := <HasProperty> name;
+    		     aggregation := 
     			  RelationDefinition(Relation(EntityOrNote(
     			  	Entity([class], None(), [])), 
     			  	Some(Label([name])),       
@@ -249,8 +278,8 @@ module utils
     			  		Some(Integer("1")), 
     			  		SeperatorSimple(), 
     			  		None(), 
-    			  		Some(RightDirection())), 
-    			  	Some(Label(["*"])), 
+    			  		<GetConnector><concat-strings>[pre, ".", post]), 
+    			  	Some(Label(["*", post])), 
     			  	EntityOrNote(Entity([type], None(), []))))
 
    
@@ -258,7 +287,7 @@ webdsl-yuml:
         (selected, position, ast, path, project-path) -> (filename, result-string)
         with
           filename := <guarantee-extension(|"yml")> path;
-          result-string := <remove-some-cons; declare; rewrite-rules;remove-empty-details;pp-yuml> selected 	
+          result-string := <remove-some-cons; declare;merge-inverse-propeties-ent;merge-inverse-propeties-comp;merge-inverse-propeties-set; rewrite-rules;remove-empty-details;pp-yuml> selected 	
 
     		
     		

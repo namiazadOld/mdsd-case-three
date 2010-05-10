@@ -1,73 +1,90 @@
 YUML(
-  [ EntityDefinition(EntityOrNote(Entity(["Person"], None(), [])))
-  , EntityDefinition(EntityOrNote(Entity(["Blog"], None(), [])))
+  [ EntityDefinition(
+      EntityOrNote(
+        Entity(
+          ["Foo"]
+        , None()
+        , [EntityDetails([NotEndPropertyOrMethod(["valueProp"], None())])]
+        )
+      )
+    )
   , RelationDefinition(
       Relation(
-        EntityOrNote(Entity(["Blog"], None(), []))
-      , Some(Label(["user"]))
-      , Connector(Some(Aggregation()), None(), SeperatorSimple(), None(), None())
+        EntityOrNote(Entity(["Foo"], None(), []))
+      , Some(Label(["entityRef"]))
+      , Connector(Some(LeftDirection()), None(), SeperatorSimple(), None(), None())
       , None()
-      , EntityOrNote(Entity(["User"], None(), []))
+      , EntityOrNote(Entity(["Bar"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Foo"], None(), []))
+      , Some(Label(["entityComp"]))
+      , Connector(Some(Composition()), None(), SeperatorSimple(), None(), None())
+      , None()
+      , EntityOrNote(Entity(["Baz"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Foo"], None(), []))
+      , Some(Label(["compoz"]))
+      , Connector(Some(Composition()), None(), SeperatorSimple(), None(), None())
+      , None()
+      , EntityOrNote(Entity(["Baz"], None(), []))
+      )
+    )
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Foo"], None(), []))
+      , Some(Label(["oneToMany"]))
+      , Connector(
+          Some(Aggregation())
+        , Some(Integer("1"))
+        , SeperatorSimple()
+        , None()
+        , None()
+        )
+      , Some(Label(["*"]))
+      , EntityOrNote(Entity(["FooBar"], None(), []))
       )
     )
   , EntityDefinition(
       EntityOrNote(
         Entity(
-          ["User"]
+          ["Bar"]
         , None()
-        , [ EntityDetails(
-              [NotEndPropertyOrMethod(["name"], None()), NotEndPropertyOrMethod(["lastname"], None())]
-            )
-          ]
+        , [EntityDetails([NotEndPropertyOrMethod(["name"], None())])]
+        )
+      )
+    )
+  , EntityDefinition(EntityOrNote(Entity(["Baz"], None(), [])))
+  , RelationDefinition(
+      Relation(
+        EntityOrNote(Entity(["Baz"], None(), []))
+      , Some(Label(["ownedBy"]))
+      , Connector(Some(LeftDirection()), None(), SeperatorSimple(), None(), Some(Composition()))
+      , Some(Label(["entityComp"]))
+      , EntityOrNote(Entity(["Foo"], None(), []))
+      )
+    )
+  , EntityDefinition(
+      EntityOrNote(
+        Entity(
+          ["Foobar"]
+        , None()
+        , [EntityDetails([NotEndPropertyOrMethod(["value"], None())])]
         )
       )
     )
   , RelationDefinition(
       Relation(
-        EntityOrNote(Entity(["Person"], None(), []))
+        EntityOrNote(Entity(["Bar"], None(), []))
       , None()
       , Inheritance()
       , None()
-      , EntityOrNote(Entity(["User"], None(), []))
-      )
-    )
-  , RelationDefinition(
-      Relation(
-        EntityOrNote(Entity(["User"], None(), []))
-      , Some(Label(["hand"]))
-      , Connector(Some(Composition()), None(), SeperatorSimple(), None(), None())
-      , None()
-      , EntityOrNote(Entity(["Hand"], None(), []))
-      )
-    )
-  , RelationDefinition(
-      Relation(
-        EntityOrNote(Entity(["User"], None(), []))
-      , Some(Label(["eyes"]))
-      , Connector(
-          Some(Aggregation())
-        , Some(Integer("1"))
-        , SeperatorSimple()
-        , None()
-        , None()
-        )
-      , Some(Label(["*"]))
-      , EntityOrNote(Entity(["Eye"], None(), []))
-      )
-    )
-  , RelationDefinition(
-      Relation(
-        EntityOrNote(Entity(["User"], None(), []))
-      , Some(Label(["blogs"]))
-      , Connector(
-          Some(Aggregation())
-        , Some(Integer("1"))
-        , SeperatorSimple()
-        , None()
-        , Some(RightDirection())
-        )
-      , Some(Label(["*"]))
-      , EntityOrNote(Entity(["Blog"], None(), []))
+      , EntityOrNote(Entity(["Foobar"], None(), []))
       )
     )
   ]

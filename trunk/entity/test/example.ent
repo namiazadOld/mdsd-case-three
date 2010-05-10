@@ -2,19 +2,20 @@ module example
 
 // Example "MyLanguage" program (see syntax/MyLanguage.sdf for the grammar)
 
-entity Person
-{
-	
-}
-entity Blog
-{
-	user -> User 
-}
-
-entity User : Person{
-	name :: String
-	lastname :: String
-	hand <> Hand
-	eyes -> Set<Eye>
-	blogs -> Set<Blog>(inverse=Blog.user)
-  }
+entity Foo {
+      valueProp  :: String   // value type
+      entityRef  -> Bar      // reference
+      entityComp <> Baz      // composition
+      anotherCompos <> MyType
+      oneToMany  -> Set<FooBar>
+    }
+    entity Bar { 
+      name :: String
+    }
+    entity Baz {
+      ownedBy -> Foo (inverse=Foo.entityComp)
+      
+    }
+    entity Foobar : Bar {
+      value :: Int
+    }
