@@ -4,7 +4,7 @@ signature
   constructors
                            : EntityDetails -> EntityDetails1
     Composition            : RelationType
-    Aggregation            : RelationType
+    Aggregation            : RelationType 
     RightDirection         : RelationType
     LeftDirection          : RelationType
     SeperatorDependency    : Seperator
